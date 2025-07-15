@@ -8,8 +8,10 @@ const supabase = createClient(
   process.env.SUPABASE_ANON_KEY!
 );
 
-export async function generateMetadata(props: { params: { id: string } }): Promise<Metadata> {
-  const { id } = props.params;
+export async function generateMetadata(
+  props: { params: Promise<{ id: string }> }
+): Promise<Metadata> {
+  const { id } = await props.params;
   const { data: audioClip } = await supabase
     .from('audio_clips')
     .select('id, title, storage_path')
@@ -35,19 +37,25 @@ export async function generateMetadata(props: { params: { id: string } }): Promi
       site: '@YourAppHandle',
       title,
       description,
-      player: `${pageUrl}?player=true`,
-      playerWidth: 500,
-      playerHeight: 200,
-      playerStream: audioUrl,
-      playerStreamContentType: 'audio/mp3',
+      players: [
+        {
+          playerUrl: `${pageUrl}?player=true`,
+          width: 500,
+          height: 200,
+          streamUrl: audioUrl,
+          // streamContentType: 'audio/mp3', // Remove if not supported by the type
+        }
+      ],
       images: [imageUrl],
     },
   };
 }
 
-export default async function ClipPage(props: { params: { id: string }, searchParams?: { [key: string]: string | string[] | undefined } }) {
-  const { id } = props.params;
-  const searchParams = props.searchParams || {};
+export default async function Page(
+  props: { params: Promise<{ id: string }>, searchParams: Promise<{ [key: string]: string | string[] | undefined }> }
+) {
+  const { id } = await props.params;
+  const searchParams = props.searchParams ? await props.searchParams : {};
   const { data: audioClip } = await supabase
     .from('audio_clips')
     .select('id, title, storage_path')
